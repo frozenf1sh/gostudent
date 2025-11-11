@@ -8,7 +8,7 @@ import (
 // Success 成功响应
 func Success(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, gin.H{
-		"code": 0,
+		"code": 200,
 		"msg":  "success",
 		"data": data,
 	})

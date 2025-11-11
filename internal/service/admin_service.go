@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/frozenf1sh/gostudent/internal/config"
 	"github.com/frozenf1sh/gostudent/internal/model"
 	"github.com/frozenf1sh/gostudent/internal/repository"
 	"github.com/frozenf1sh/gostudent/pkg/utils" // 假设 utils 包中包含 JWT 和 Hash 函数
@@ -14,14 +15,17 @@ var (
 	ErrInvalidPassword = errors.New("invalid username or password")
 )
 
-// AdminService 定义管理员业务逻辑接口
+// 接口：管理员业务逻辑接口
 type AdminService interface {
-	Login(ctx context.Context, req *model.AdminLoginRequest) (string, error) // 返回 JWT token
+	// 登录，返回 JWT token
+	Login(ctx context.Context, req *model.AdminLoginRequest) (string, error)
+	// 通过 ID 获取
 	GetByID(ctx context.Context, id uint) (*model.Admin, error)
 	// CreateAdmin 用于初始化超级管理员 (通常只在 setup 阶段运行一次)
 	CreateAdmin(ctx context.Context, username, password string) error
 }
 
+// 接口实现
 type adminServiceImpl struct {
 	adminRepo repository.AdminRepository
 }
@@ -67,7 +71,11 @@ func (s *adminServiceImpl) Login(ctx context.Context, req *model.AdminLoginReque
 	}
 
 	// 3. 生成 JWT Token
-	token, err := utils.GenerateJWT(admin.ID)
+	data := map[string]any{
+		"type":     "admin_login", // 业务层定义的类型标签
+		"admin_id": admin.ID,
+	}
+	token, err := utils.GenerateGenericJWT(data, config.GlobalConfig.JWT.AdminExpiresIn)
 	if err != nil {
 		return "", err
 	}

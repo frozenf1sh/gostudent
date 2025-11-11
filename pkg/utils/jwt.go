@@ -9,37 +9,50 @@ import (
 )
 
 var (
-	// jwtSecretKey 密钥
+	// jwtSecretKey 密钥 (所有令牌共享，但可以根据需要配置多个)
 	jwtSecretKey []byte
-	// jwtExpiresIn Token 有效期
-	jwtExpiresIn time.Duration // 72 小时
+	// jwtIssuer 签发者
+	jwtIssuer = "xdu-activity-system"
 )
 
+// InitJWT 初始化 JWT 配置
 func InitJWT() {
+	// 假设配置中有一个通用的 JWT Secret
 	jwtSecretKey = []byte(config.GlobalConfig.JWT.Secret)
-	jwtExpiresIn = config.GlobalConfig.JWT.ExpiresIn
+	// 注意：这里不再初始化过期时间，而是让业务层传入
 }
 
-// CustomClaims 自定义 JWT claims
-type CustomClaims struct {
-	AdminID uint `json:"admin_id"`
+// MapClaims 通用的 Claims 结构体，用于封装业务数据
+type MapClaims struct {
+	Data map[string]any `json:"data,omitempty"` // 用于存储 AdminID, ActivityID 等业务数据
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT 生成 JWT Token
-func GenerateJWT(adminID uint) (string, error) {
-	// 创建 claims
-	claims := CustomClaims{
-		AdminID: adminID,
+// GenerateGenericJWT 通用生成 JWT Token
+// 参数:
+//
+//	data map[string]any: 包含业务数据的映射 (例如 {"admin_id": 1})
+//	expiresIn time.Duration: Token 的有效时长
+func GenerateGenericJWT(data map[string]any, expiresIn time.Duration) (string, error) {
+	if len(jwtSecretKey) == 0 {
+		return "", errors.New("JWT secret key is not initialized")
+	}
+	if expiresIn <= 0 {
+		return "", errors.New("expiresIn must be a positive duration")
+	}
+
+	// 1. 创建 Claims
+	claims := MapClaims{
+		Data: data,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtExpiresIn)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "xdu-activity-system",
+			Issuer:    jwtIssuer,
 		},
 	}
 
-	// 使用 HS256 签名算法
+	// 2. 签名
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtSecretKey)
 	if err != nil {
@@ -49,10 +62,11 @@ func GenerateJWT(adminID uint) (string, error) {
 	return tokenString, nil
 }
 
-// ParseJWT 解析 JWT Token
-func ParseJWT(tokenString string) (*CustomClaims, error) {
-	// 解析 token
-	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (any, error) {
+// ParseGenericJWT 通用解析 JWT Token
+// 返回: 包含业务数据的 MapClaims 结构体
+func ParseGenericJWT(tokenString string) (*MapClaims, error) {
+	// 1. 解析 token
+	token, err := jwt.ParseWithClaims(tokenString, &MapClaims{}, func(token *jwt.Token) (any, error) {
 		// 确保签名方法是 HS256
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -64,8 +78,8 @@ func ParseJWT(tokenString string) (*CustomClaims, error) {
 		return nil, err
 	}
 
-	// 验证 token 并获取 claims
-	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+	// 2. 验证 token 并获取 claims
+	if claims, ok := token.Claims.(*MapClaims); ok && token.Valid {
 		return claims, nil
 	}
 

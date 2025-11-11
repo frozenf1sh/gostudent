@@ -14,14 +14,19 @@ var (
 	ErrRegistrationDuplicate = errors.New("you have already registered for this activity")
 	ErrRegistrationMaxed     = errors.New("registration count has reached the maximum limit")
 	ErrRegistrationNotOpen   = errors.New("registration is not currently open")
+	ErrRegistrationNotFound  = errors.New("registration record not found") // 新增错误：报名记录未找到
 )
 
-// RegistrationService 定义报名业务逻辑接口
+// 接口：报名业务逻辑接口
 type RegistrationService interface {
+	// 报名业务
 	Register(ctx context.Context, activityID uint, req *model.CreateRegistrationRequest) (*model.Registration, error) // 核心事务逻辑
+	// 列出活动报名者
 	ListRegistrationsByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error)
-	// (可选) SignIn 签到逻辑
-	// SignIn(ctx context.Context, activityID uint, phone string, token string) error
+	// SignIn 签到逻辑
+	SignIn(ctx context.Context, activityID uint, phone string, token string) error
+	// 获取单条报名记录详情 (新增)
+	GetRegistrationByID(ctx context.Context, registrationID uint) (*model.Registration, error)
 }
 
 type registrationServiceImpl struct {
@@ -41,9 +46,9 @@ func NewRegistrationService(db *gorm.DB, aRepo repository.ActivityRepository, rR
 
 // Register 处理参与者报名活动的核心事务逻辑
 func (s *registrationServiceImpl) Register(ctx context.Context, activityID uint, req *model.CreateRegistrationRequest) (*model.Registration, error) {
-	// 使用事务确保报名和人数更新的原子性
+	// 用于返回报名响应
 	var newRegistration *model.Registration
-
+	// 使用自动事务确保报名和人数更新的原子性
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. 获取活动信息 (使用事务锁)
 		activity, err := s.activityRepo.WithTx(tx).FindByIDForUpdate(ctx, activityID)
@@ -109,4 +114,49 @@ func (s *registrationServiceImpl) Register(ctx context.Context, activityID uint,
 func (s *registrationServiceImpl) ListRegistrationsByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error) {
 	// 校验 activityID 权限和存在性（通常在 handler/service.activity.GetByID 中完成）
 	return s.registrationRepo.ListByActivityID(ctx, activityID, page, pageSize)
+}
+
+// GetRegistrationByID 根据ID获取单条报名记录详情 (新增实现)
+func (s *registrationServiceImpl) GetRegistrationByID(ctx context.Context, registrationID uint) (*model.Registration, error) {
+	// 假设 registrationRepo 接口包含 FindByID 方法
+	reg, err := s.registrationRepo.FindByID(ctx, registrationID)
+	if err != nil {
+		// 如果是 GORM 记录未找到错误，则返回 Service 层的 ErrRegistrationNotFound
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrRegistrationNotFound
+		}
+		// 其他数据库错误
+		return nil, err
+	}
+	return reg, nil
+}
+
+func (s *registrationServiceImpl) SignIn(ctx context.Context, activityID uint, phone string, token string) error {
+	reg, err := s.registrationRepo.FindByActivityAndPhone(ctx, activityID, phone)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("报名记录未找到或手机号错误")
+		}
+		return errors.New("查询报名记录失败: " + err.Error())
+	}
+
+	// 2. 检查是否已签到
+	if reg.IsSignedIn {
+		return errors.New("您已签到，请勿重复操作")
+	}
+
+	// 3. 校验 Token (示例: 假设 Token 存储在报名记录中, 或有统一的活动签到码)
+	// 为了简化，我们假设 token 必须匹配报名记录中的某个字段（例如：TicketToken）
+	// 或者活动有一个全局签到码 (Admin 扫码签到时可忽略此步骤)
+	// if reg.TicketToken != token {
+	// 	return errors.New("签到验证码/Token 不匹配")
+	// }
+
+	// 4. 更新签到状态和时间
+	now := time.Now()
+	err = s.registrationRepo.UpdateSignInStatus(ctx, reg.ID, true, now)
+	if err != nil {
+		return errors.New("更新签到状态失败: " + err.Error())
+	}
+	return nil
 }

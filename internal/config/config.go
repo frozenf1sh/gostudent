@@ -28,11 +28,17 @@ type Config struct {
 
 	// JWT 配置
 	JWT struct {
-		Secret    string        `mapstructure:"secret"`     // JWT 密钥
-		ExpiresIn time.Duration `mapstructure:"expires_in"` // Token 有效期
+		Secret           string        `mapstructure:"secret"`              // JWT 密钥
+		AdminExpiresIn   time.Duration `mapstructure:"admin_expires_in"`    // Token 有效期
+		CheckInExpiresIn time.Duration `mapstructure:"check_in_expires_in"` // Token 有效期
 	} `mapstructure:"jwt"`
 
 	LogFile string `mapstructure:"log_file"`
+
+	Admin struct {
+		Username string `mapstructure:"username"`
+		Password string `mapstructure:"password"`
+	} `mapstructure:"Admin"`
 }
 
 // GlobalConfig 是程序的全局配置实例
