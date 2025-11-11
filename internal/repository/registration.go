@@ -9,30 +9,37 @@ import (
 	"gorm.io/gorm"
 )
 
-// RegistrationRepository 定义报名仓库接口
+// 接口：报名仓库接口
 type RegistrationRepository interface {
-	// WithTx 返回一个使用事务的仓库实例
+	// 返回一个使用事务的仓库实例
 	WithTx(tx *gorm.DB) RegistrationRepository
 
+	// 创建一个报名
 	Create(ctx context.Context, registration *model.Registration) error
-	// FindByActivityAndPhone 检查是否重复报名
+
+	// 通过活动id和手机号检查报名是否已存在报名
 	FindByActivityAndPhone(ctx context.Context, activityID uint, phone string) (*model.Registration, error)
+	// 通过活动id列出所有报名（分页）
 	ListByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error)
+	// 通过主键id查找
 	FindByID(ctx context.Context, id uint) (*model.Registration, error)
+	// 更新签到状态+时间
 	UpdateSignInStatus(ctx context.Context, registrationID uint, signedIn bool, signedInAt time.Time) error
 }
 
-// registrationRepositoryImpl 实现了 RegistrationRepository 接口
+// ----- 实现 -----
+// 实现了 RegistrationRepository 接口
 type registrationRepositoryImpl struct {
+	// 可以是事务
 	db *gorm.DB
 }
 
-// NewRegistrationRepository 创建一个新的 registrationRepositoryImpl
+// 构造函数
 func NewRegistrationRepository(db *gorm.DB) RegistrationRepository {
 	return &registrationRepositoryImpl{db: db}
 }
 
-// WithTx 允许仓库在事务中运行
+// 接受一个事务，返回一个基于该事务的实例
 func (r *registrationRepositoryImpl) WithTx(tx *gorm.DB) RegistrationRepository {
 	return &registrationRepositoryImpl{db: tx}
 }
@@ -48,8 +55,8 @@ func (r *registrationRepositoryImpl) Create(ctx context.Context, registration *m
 func (r *registrationRepositoryImpl) FindByActivityAndPhone(ctx context.Context, activityID uint, phone string) (*model.Registration, error) {
 	var reg model.Registration
 	err := r.db.WithContext(ctx).
-		Where("activity_id = ? AND participant_phone = ?", activityID, phone).
-		First(&reg).Error
+		Where("activity_id = ? AND participant_phone = ?", activityID, phone). // 构造查询条件
+		First(&reg).Error                                                      // 查询第一个
 
 	// Gorm 的 ErrRecordNotFound 是正常情况，表示未找到
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -66,6 +73,7 @@ func (r *registrationRepositoryImpl) ListByActivityID(ctx context.Context, activ
 	var registrations []*model.Registration
 	var total int64
 
+	// 构造查询条件
 	query := r.db.WithContext(ctx).Model(&model.Registration{}).Where("activity_id = ?", activityID)
 
 	// 1. 获取总数
@@ -73,7 +81,7 @@ func (r *registrationRepositoryImpl) ListByActivityID(ctx context.Context, activ
 		return nil, 0, err
 	}
 
-	// 2. 应用分页
+	// 2. 应用分页并查询
 	offset := (page - 1) * pageSize
 	if err := query.Order("registered_at ASC").Limit(pageSize).Offset(offset).Find(&registrations).Error; err != nil {
 		return nil, 0, err
@@ -82,7 +90,7 @@ func (r *registrationRepositoryImpl) ListByActivityID(ctx context.Context, activ
 	return registrations, total, nil
 }
 
-// FindByID 通过ID查找报名记录
+// 通过ID查找报名记录
 func (r *registrationRepositoryImpl) FindByID(ctx context.Context, id uint) (*model.Registration, error) {
 	var reg model.Registration
 	if err := r.db.WithContext(ctx).First(&reg, id).Error; err != nil {
@@ -91,9 +99,9 @@ func (r *registrationRepositoryImpl) FindByID(ctx context.Context, id uint) (*mo
 	return &reg, nil
 }
 
-// UpdateSignInStatus 更新签到状态 (可选功能)
+// 更新签到状态
 func (r *registrationRepositoryImpl) UpdateSignInStatus(ctx context.Context, registrationID uint, signedIn bool, signedInAt time.Time) error {
-	return r.db.WithContext(ctx).Model(&model.Registration{}).Where("id = ?", registrationID).Updates(map[string]interface{}{
+	return r.db.WithContext(ctx).Model(&model.Registration{}).Where("id = ?", registrationID).Updates(map[string]any{
 		"is_signed_in": signedIn,
 		"signed_in_at": signedInAt,
 	}).Error

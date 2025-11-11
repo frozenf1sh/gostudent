@@ -9,31 +9,37 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// ActivityRepository 定义活动仓库接口
+// 接口：活动仓库接口
 type ActivityRepository interface {
-	// WithTx 返回一个使用事务的仓库实例
+	// 返回一个使用事务的仓库实例
 	WithTx(tx *gorm.DB) ActivityRepository
 
+	// CUD
 	Create(ctx context.Context, activity *model.Activity) error
 	Update(ctx context.Context, activity *model.Activity) error
 	Delete(ctx context.Context, id uint) error
+
+	// 通过唯一id查找
 	FindByID(ctx context.Context, id uint) (*model.Activity, error)
-	// FindByIDForUpdate 通过ID查找并锁定行，用于事务
+	// 通过ID查找并锁定行，用于事务
 	FindByIDForUpdate(ctx context.Context, id uint) (*model.Activity, error)
+	// List 列出活动 (带过滤和分页)
 	List(ctx context.Context, params *model.ListActivitiesParams) ([]*model.Activity, int64, error)
 }
 
-// activityRepositoryImpl 实现了 ActivityRepository 接口
+// ----- 实现 -----
+// 实现了 ActivityRepository 接口
 type activityRepositoryImpl struct {
+	// 可以是事务
 	db *gorm.DB
 }
 
-// NewActivityRepository 创建一个新的 activityRepositoryImpl
+// 构造函数
 func NewActivityRepository(db *gorm.DB) ActivityRepository {
 	return &activityRepositoryImpl{db: db}
 }
 
-// WithTx 允许仓库在事务中运行
+// 接受一个事务，返回一个基于该事务的实例
 // service 层调用: txRepo := activityRepo.WithTx(tx)
 func (r *activityRepositoryImpl) WithTx(tx *gorm.DB) ActivityRepository {
 	// 返回一个新的实例，它持有事务 *gorm.DB
@@ -67,6 +73,7 @@ func (r *activityRepositoryImpl) FindByID(ctx context.Context, id uint) (*model.
 }
 
 // FindByIDForUpdate 通过ID查找并使用 "FOR UPDATE" 锁
+// 悲观锁查找，在查询时阻止其他并发事务修改这条记录，直到当前事务提交或回滚
 // 必须在事务(WithTx)中调用
 func (r *activityRepositoryImpl) FindByIDForUpdate(ctx context.Context, id uint) (*model.Activity, error) {
 	var activity model.Activity
@@ -82,7 +89,7 @@ func (r *activityRepositoryImpl) List(ctx context.Context, params *model.ListAct
 	var activities []*model.Activity
 	var total int64
 
-	// 创建查询构建器
+	// 创建两个独立查询构建器，一个计数，一个分页查找
 	query := r.db.WithContext(ctx).Model(&model.Activity{})
 	countQuery := r.db.WithContext(ctx).Model(&model.Activity{})
 

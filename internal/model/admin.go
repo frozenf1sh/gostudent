@@ -13,8 +13,3 @@ type Admin struct {
 	// 关联关系：一个管理员可以创建多个活动
 	Activities []Activity `gorm:"foreignKey:AdminID" json:"-"`
 }
-
-// TableName 自定义Gorm的表名
-func (Admin) TableName() string {
-	return "admins"
-}

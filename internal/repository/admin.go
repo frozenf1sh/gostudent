@@ -8,23 +8,29 @@ import (
 	"gorm.io/gorm"
 )
 
-// AdminRepository 定义管理员仓库接口
+// 接口：管理员仓库
 type AdminRepository interface {
+	// 创建管理员
 	Create(ctx context.Context, admin *model.Admin) error
+	// 根据用户名查找第一个
 	FindByUsername(ctx context.Context, username string) (*model.Admin, error)
+	// 根据ID查找
 	FindByID(ctx context.Context, id uint) (*model.Admin, error)
 }
 
-// adminRepositoryImpl 实现了 AdminRepository 接口
+// ----- 实现 -----
+
+// 管理员仓库实现
 type adminRepositoryImpl struct {
 	db *gorm.DB
 }
 
-// NewAdminRepository 创建一个新的 adminRepositoryImpl
+// 构造函数
 func NewAdminRepository(db *gorm.DB) AdminRepository {
 	return &adminRepositoryImpl{db: db}
 }
 
+// 方法实现
 // Create 创建管理员
 func (r *adminRepositoryImpl) Create(ctx context.Context, admin *model.Admin) error {
 	return r.db.WithContext(ctx).Create(admin).Error
