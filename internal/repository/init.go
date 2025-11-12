@@ -28,7 +28,7 @@ func GormInit() (db *gorm.DB) {
 	// 连接数据库，并设置gorm日志
 	gormAdapter := fishlogger.NewGormSlogAdapter(fishlogger.AppLogger)
 	db, err = gorm.Open(mysql.Open(DSN), &gorm.Config{
-		Logger:      gormAdapter.LogMode(logger.Info),
+		Logger:      gormAdapter.LogMode(logger.Warn),
 		PrepareStmt: true,
 	})
 	if err != nil {

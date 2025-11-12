@@ -98,8 +98,6 @@ func (s *activityServiceImpl) PublishActivity(ctx context.Context, id uint) erro
 
 	// 6. 调用 Repository 更新
 	return s.activityRepo.Update(ctx, activity)
-
-	// Note: 实际项目中，这里还可以调用 utils/qrcode.go 来生成二维码并保存链接
 }
 
 // GetActivityByID 获取单个活动详情
@@ -116,7 +114,7 @@ func (s *activityServiceImpl) ListActivities(ctx context.Context, params *model.
 	return s.activityRepo.List(ctx, params)
 }
 
-// UpdateActivity 更新活动（此处省略删除和更新的详细实现，原理类似 GetByID + Update）
+// UpdateActivity 完整更新活动逻辑
 func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *model.UpdateActivityRequest) error {
 	// 1. 查找活动
 	activity, err := s.activityRepo.FindByID(ctx, id)
@@ -124,22 +122,72 @@ func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *
 		return ErrActivityNotFound
 	}
 
-	// 2. 检查活动是否在允许修改的状态 (例如，PUBLISHED 状态后只允许修改部分字段)
-	if activity.Status != model.ActivityStatusDraft && activity.Status != model.ActivityStatusPublished {
+	// 2. 检查活动是否在允许修改的状态
+	if activity.Status == model.ActivityStatusFinished {
 		return errors.New("cannot update activity in current status")
 	}
 
 	// 3. DTO -> Model 赋值 (只更新非空字段)
+
+	// A. 字符串类型更新
 	if req.Title != nil {
 		activity.Title = *req.Title
+	}
+	if req.Type != nil { // 修复：Type
+		activity.Type = *req.Type
 	}
 	if req.Description != nil {
 		activity.Description = *req.Description
 	}
+	if req.Location != nil { // 修复：Location
+		activity.Location = *req.Location
+	}
+	if req.LiveURL != nil { // 修复：LiveURL
+		activity.LiveURL = *req.LiveURL
+	}
+	if req.AttachmentURL != nil { // 修复：AttachmentURL
+		activity.AttachmentURL = *req.AttachmentURL
+	}
+
+	// B. 数值类型更新
 	if req.MaxParticipants != nil {
 		activity.MaxParticipants = *req.MaxParticipants
 	}
-	// ... 其他字段的更新
+
+	// C. 时间类型更新 (使用临时变量来执行时间校验)
+	newStartTime := activity.StartTime
+	if req.StartTime != nil {
+		newStartTime = *req.StartTime // 修复：StartTime
+	}
+
+	newDeadline := activity.RegistrationDeadline
+	if req.RegistrationDeadline != nil {
+		newDeadline = *req.RegistrationDeadline // 修复：RegistrationDeadline
+	}
+
+	// D. 业务逻辑校验：报名截止时间不能晚于活动开始时间
+	if newDeadline.After(newStartTime) {
+		return errors.New("registration deadline must be before activity start time")
+	}
+
+	// 如果校验通过，才赋值回 activity model
+	activity.StartTime = newStartTime
+	activity.RegistrationDeadline = newDeadline
+
+	// E. 状态更新
+	if req.Status != nil {
+		// 修复：Status 字段赋值和类型转换
+		newStatus := model.ActivityStatus(*req.Status)
+
+		// 简单的状态值校验
+		if newStatus != model.ActivityStatusDraft &&
+			newStatus != model.ActivityStatusPublished &&
+			newStatus != model.ActivityStatusClosed &&
+			newStatus != model.ActivityStatusFinished {
+			return errors.New("invalid status value")
+		}
+		activity.Status = newStatus
+	}
 
 	// 4. 调用 Repository 更新
 	return s.activityRepo.Update(ctx, activity)
@@ -147,6 +195,6 @@ func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *
 
 // DeleteActivity 删除活动
 func (s *activityServiceImpl) DeleteActivity(ctx context.Context, id uint) error {
-	// TODO: 考虑删除活动的连锁反应（报名记录）。如果使用 Gorm 外键约束 ON DELETE CASCADE，则会自动删除。
+	// 考虑删除活动的连锁反应（报名记录）。如果使用 Gorm 外键约束 ON DELETE CASCADE，则会自动删除。
 	return s.activityRepo.Delete(ctx, id)
 }

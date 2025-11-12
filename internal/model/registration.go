@@ -16,6 +16,6 @@ type Registration struct {
 	Activity   Activity `gorm:"foreignKey:ActivityID" json:"activity"`
 
 	// 可选的签到功能字段
-	IsSignedIn bool      `gorm:"not null;default:false" json:"is_signed_in"` // 是否已签到
-	SignedInAt time.Time `gorm:"null" json:"signed_in_at"`                   // 签到时间
+	IsSignedIn bool       `gorm:"not null;default:false" json:"is_signed_in"` // 是否已签到
+	SignedInAt *time.Time `gorm:"null" json:"signed_in_at"`                   // 签到时间
 }

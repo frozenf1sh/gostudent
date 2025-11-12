@@ -38,7 +38,12 @@ type Config struct {
 	Admin struct {
 		Username string `mapstructure:"username"`
 		Password string `mapstructure:"password"`
-	} `mapstructure:"Admin"`
+	} `mapstructure:"admin"`
+
+	Cors struct {
+		AllowOrigins []string `mapstructure:"allow_origins"`
+		AllowMethods []string `mapstructure:"allow_methods"`
+	} `mapstructure:"cors"`
 }
 
 // GlobalConfig 是程序的全局配置实例

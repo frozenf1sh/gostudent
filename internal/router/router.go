@@ -25,7 +25,8 @@ func InitRouter(
 	r.Use(gin.LoggerWithWriter(ginAdapter))
 	// 恢复器
 	r.Use(gin.Recovery())
-	// TODO: 跨域处理 (CORS)
+	// 跨域处理 (CORS)
+	// r.Use(middleware.GetCors())
 
 	// Ping 接口，用于健康检查
 	r.GET("/ping", func(c *gin.Context) {
@@ -72,6 +73,8 @@ func InitRouter(
 		// A7 & A8: 报名记录管理 (路径已规范)
 		adminGroup.GET("/activities/:activity_id/registrations", registrationH.ListRegistrations)
 		adminGroup.GET("/registrations/:registration_id", registrationH.GetRegistrationByID) // A8
+
+		// A9: Admin面板统计信息
 	}
 
 	// 4. 处理 404 错误

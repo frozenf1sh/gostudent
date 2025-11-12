@@ -76,10 +76,6 @@ type LogChannelConfig struct {
 
 	// Format: 输出格式，可以是 "text" 或 "json"。
 	Format string
-
-	// MaxLevel: 可选，该通道接受的最高日志级别。
-	// 如果设置为 MaxLevel，则使用自定义过滤逻辑。
-	MaxLevel slog.Level
 }
 
 // NewMultiChannelLogger 根据配置创建并返回一个 Multi-channel Logger。
@@ -154,39 +150,8 @@ func NewMultiChannelLogger(
 		}
 		// --- 结束：新增简洁格式化 ---
 
-		// 实现 MaxLevel 过滤逻辑
-		if cfg.MaxLevel != 0 && cfg.MaxLevel >= cfg.MinLevel {
-			// 在这里，我们需要组合 formatReplaceAttr 和 MaxLevel 过滤
-			maxLevel := cfg.MaxLevel
-
-			// 如果同时有格式化和MaxLevel过滤，需要组合它们
-			originalReplaceAttr := formatReplaceAttr // 如果是Text格式，originalReplaceAttr 就是格式化函数
-			if cfg.Format != "text" {
-				// 如果不是Text格式，但有MaxLevel过滤，则没有格式化函数
-				originalReplaceAttr = nil
-			}
-
-			options.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
-				// 1. 如果有原有的 ReplaceAttr (比如Text格式化函数)，先执行它
-				if originalReplaceAttr != nil {
-					a = originalReplaceAttr(groups, a)
-				}
-				// 如果上一步返回了空属性 (格式化时被丢弃)，则直接返回
-				if a.Key == "" && a.Value.Kind() == 0 {
-					return a
-				}
-
-				// 2. MaxLevel 过滤逻辑
-				if a.Key == slog.LevelKey {
-					levelVal := a.Value.Any().(slog.Level)
-					if levelVal > maxLevel {
-						return slog.Attr{} // 丢弃该日志记录
-					}
-				}
-				return a
-			}
-		} else if cfg.Format == "text" {
-			// 只有Text格式化，没有MaxLevel过滤的情况
+		if cfg.Format == "text" {
+			// 只有Text格式化
 			options.ReplaceAttr = formatReplaceAttr
 		}
 
