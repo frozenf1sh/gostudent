@@ -57,6 +57,7 @@ func main() {
 	adminH := handler.NewAdminHandler(adminSvc)
 	activityH := handler.NewActivityHandler(activitySvc)
 	registrationH := handler.NewRegistrationHandler(registrationSvc)
+	dashboardH := handler.NewDashboardHandler(db, activityRepo, registrationRepo)
 
 	// 初始化超级管理员
 	initSuperAdmin(adminSvc)
@@ -64,7 +65,7 @@ func main() {
 	// Web服务
 	gin.SetMode(gin.ReleaseMode)
 	// 创建路由
-	r = router.InitRouter(adminH, activityH, registrationH)
+	r = router.InitRouter(adminH, activityH, registrationH, dashboardH)
 
 	// 监听host和端口
 	var (

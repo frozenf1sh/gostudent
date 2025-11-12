@@ -96,8 +96,16 @@ type RegistrationResponse struct {
 	IsSignedIn         bool      `json:"is_signed_in"`
 }
 
-// // SignInRequest 参与者签到请求 (新增)
-// type SignInRequest struct {
-// 	Phone string `json:"phone" binding:"required"` // 参与者手机号，用于查找报名记录
-// 	// Token string `json:"token" binding:"required"` // 签到 Token 或验证码
-// }
+// SignInRequest 参与者签到请求 (新增)
+type SignInRequest struct {
+	Phone string `json:"phone" binding:"required"` // 参与者手机号，用于查找报名记录
+	// Token string `json:"token" binding:"required"` // 签到 Token 或验证码
+}
+
+// DashboardResponse 仪表盘统计响应
+type DashboardResponse struct {
+	TotalActivities     int64 `json:"total_activities"`
+	PublishedActivities int64 `json:"published_activities"`
+	TotalRegistrations  int64 `json:"total_registrations"`
+	TodayRegistrations  int64 `json:"today_registrations"`
+}

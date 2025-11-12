@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -55,8 +56,8 @@ func GormInit() (db *gorm.DB) {
 
 	slog.Info("开始数据库自动迁移")
 	err = db.AutoMigrate(&model.Admin{})
-	err = db.AutoMigrate(&model.Activity{})
-	err = db.AutoMigrate(&model.Registration{})
+	err = errors.Join(err, db.AutoMigrate(&model.Activity{}))
+	err = errors.Join(err, db.AutoMigrate(&model.Registration{}))
 	if err != nil {
 		slog.Error("数据库自动迁移失败", "reason", err)
 		os.Exit(1)

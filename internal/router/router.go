@@ -15,6 +15,7 @@ func InitRouter(
 	adminH handler.AdminHandler,
 	activityH handler.ActivityHandler,
 	registrationH handler.RegistrationHandler,
+	dashboardH handler.DashboardHandler, // 新增参数
 ) *gin.Engine {
 	// 创建 Gin 实例
 	r := gin.New()
@@ -75,6 +76,7 @@ func InitRouter(
 		adminGroup.GET("/registrations/:registration_id", registrationH.GetRegistrationByID) // A8
 
 		// A9: Admin面板统计信息
+		adminGroup.GET("/dashboard", dashboardH.GetDashboardData) // 仪表盘统计接口
 	}
 
 	// 4. 处理 404 错误
