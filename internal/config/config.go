@@ -44,6 +44,8 @@ type Config struct {
 		AllowOrigins []string `mapstructure:"allow_origins"`
 		AllowMethods []string `mapstructure:"allow_methods"`
 	} `mapstructure:"cors"`
+
+	ActivityStatusUpdateInterval time.Duration `mapstructure:"activity_status_update_interval"`
 }
 
 // GlobalConfig 是程序的全局配置实例

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"log/slog"
+
 	"github.com/frozenf1sh/gostudent/internal/model"
 	"github.com/frozenf1sh/gostudent/internal/repository"
 	"gorm.io/gorm"
@@ -25,11 +27,35 @@ type ActivityService interface {
 	UpdateActivity(ctx context.Context, id uint, req *model.UpdateActivityRequest) error
 	DeleteActivity(ctx context.Context, id uint) error
 	PublishActivity(ctx context.Context, id uint) error // 发布活动 (核心功能之一)
+	StartActivityStatusUpdater(ctx context.Context, interval time.Duration)
 }
 
 type activityServiceImpl struct {
 	db           *gorm.DB // 用于事务
 	activityRepo repository.ActivityRepository
+}
+
+// StartActivityStatusUpdater 启动活动状态自动更新定时任务（建议在 main.go 初始化时调用）
+func (s *activityServiceImpl) StartActivityStatusUpdater(ctx context.Context, interval time.Duration) {
+	slog.Info("活动状态自动更新任务已启动")
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				slog.Info("活动状态自动更新任务已停止")
+				return
+			case t := <-ticker.C:
+				closed, finished, err := s.activityRepo.UpdateStatusByDeadline(ctx)
+				if err != nil {
+					slog.Error("活动状态自动更新失败", "err", err)
+				} else {
+					slog.Info("活动状态自动更新", "time", t, "closed_count", closed, "finished_count", finished)
+				}
+			}
+		}
+	}()
 }
 
 // NewActivityService 创建 ActivityService 实例

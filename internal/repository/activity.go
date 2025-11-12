@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/frozenf1sh/gostudent/internal/model"
 
@@ -25,6 +26,8 @@ type ActivityRepository interface {
 	FindByIDForUpdate(ctx context.Context, id uint) (*model.Activity, error)
 	// List 列出活动 (带过滤和分页)
 	List(ctx context.Context, params *model.ListActivitiesParams) ([]*model.Activity, int64, error)
+	// 批量更新活动状态（定时任务用）
+	UpdateStatusByDeadline(ctx context.Context) (closedCount int64, finishedCount int64, err error)
 }
 
 // ----- 实现 -----
@@ -126,4 +129,25 @@ func (r *activityRepositoryImpl) List(ctx context.Context, params *model.ListAct
 	}
 
 	return activities, total, nil
+}
+
+// UpdateStatusByDeadline 批量更新活动状态（定时任务用）
+func (r *activityRepositoryImpl) UpdateStatusByDeadline(ctx context.Context) (int64, int64, error) {
+	// 1. 报名截止时间已过，且状态为 PUBLISHED，更新为 CLOSED
+	closed := r.db.WithContext(ctx).Model(&model.Activity{}).
+		Where("registration_deadline < ? AND status = ?", time.Now(), model.ActivityStatusPublished).
+		Update("status", model.ActivityStatusClosed)
+
+	// 2. 活动开始时间已过，且状态为 PUBLISHED 或 CLOSED，更新为 FINISHED
+	finished := r.db.WithContext(ctx).Model(&model.Activity{}).
+		Where("start_time < ? AND status IN (?, ?)", time.Now(), model.ActivityStatusPublished, model.ActivityStatusClosed).
+		Update("status", model.ActivityStatusFinished)
+
+	if closed.Error != nil {
+		return 0, 0, closed.Error
+	}
+	if finished.Error != nil {
+		return closed.RowsAffected, 0, finished.Error
+	}
+	return closed.RowsAffected, finished.RowsAffected, nil
 }

@@ -62,6 +62,9 @@ func main() {
 	// 初始化超级管理员
 	initSuperAdmin(adminSvc)
 
+	// 启动活动状态自动更新任务
+	activitySvc.StartActivityStatusUpdater(context.Background(), config.GlobalConfig.ActivityStatusUpdateInterval)
+
 	// Web服务
 	gin.SetMode(gin.ReleaseMode)
 	// 创建路由
