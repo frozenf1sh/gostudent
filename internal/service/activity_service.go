@@ -70,7 +70,9 @@ func NewActivityService(db *gorm.DB, repo repository.ActivityRepository) Activit
 func (s *activityServiceImpl) CreateActivity(ctx context.Context, adminID uint, req *model.CreateActivityRequest) (*model.Activity, error) {
 	// 1. 基本校验：报名截止时间不能晚于活动开始时间
 	if req.RegistrationDeadline.After(req.StartTime) {
-		return nil, errors.New("registration deadline must be before activity start time")
+		return nil, errors.New("报名截止时间不能晚于活动开始时间")
+	} else if req.EndTime.Before(req.StartTime) {
+		return nil, errors.New("结束时间不能晚于开始时间")
 	}
 
 	// 2. DTO -> Model 转换
@@ -80,6 +82,7 @@ func (s *activityServiceImpl) CreateActivity(ctx context.Context, adminID uint, 
 		Type:                 req.Type,
 		Description:          req.Description,
 		StartTime:            req.StartTime,
+		EndTime:              req.EndTime,
 		Location:             req.Location,
 		RegistrationDeadline: req.RegistrationDeadline,
 		MaxParticipants:      req.MaxParticipants,
@@ -150,7 +153,7 @@ func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *
 
 	// 2. 检查活动是否在允许修改的状态
 	if activity.Status == model.ActivityStatusFinished {
-		return errors.New("cannot update activity in current status")
+		return errors.New("无法修改已结束的活动")
 	}
 
 	// 3. DTO -> Model 赋值 (只更新非空字段)
@@ -185,6 +188,10 @@ func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *
 	if req.StartTime != nil {
 		newStartTime = *req.StartTime // 修复：StartTime
 	}
+	newEndTime := activity.EndTime
+	if req.EndTime != nil {
+		newEndTime = *req.EndTime // 修复：StartTime
+	}
 
 	newDeadline := activity.RegistrationDeadline
 	if req.RegistrationDeadline != nil {
@@ -193,11 +200,14 @@ func (s *activityServiceImpl) UpdateActivity(ctx context.Context, id uint, req *
 
 	// D. 业务逻辑校验：报名截止时间不能晚于活动开始时间
 	if newDeadline.After(newStartTime) {
-		return errors.New("registration deadline must be before activity start time")
+		return errors.New("报名截止时间不能晚于活动开始时间")
+	} else if newEndTime.Before(newStartTime) {
+		return errors.New("结束时间不能晚于开始时间")
 	}
 
 	// 如果校验通过，才赋值回 activity model
 	activity.StartTime = newStartTime
+	activity.EndTime = newEndTime
 	activity.RegistrationDeadline = newDeadline
 
 	// E. 状态更新

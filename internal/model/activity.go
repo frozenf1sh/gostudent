@@ -20,6 +20,7 @@ type Activity struct {
 	Type        string         `gorm:"type:varchar(50);not null" json:"type"`                   // 活动类型 (讲座, 宣讲会等)
 	Description string         `gorm:"type:text" json:"description"`                            // 活动简介
 	StartTime   time.Time      `gorm:"not null" json:"start_time"`                              // 活动时间
+	EndTime     time.Time      `gorm:"not null" json:"end_time"`                                // 活动时间
 	Location    string         `gorm:"type:varchar(255);not null" json:"location"`              // 活动地点
 	Status      ActivityStatus `gorm:"type:varchar(20);not null;default:'DRAFT'" json:"status"` // 活动状态
 

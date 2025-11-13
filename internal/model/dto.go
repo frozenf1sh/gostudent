@@ -26,6 +26,7 @@ type CreateActivityRequest struct {
 	Type                 string    `json:"type" binding:"required"`
 	Description          string    `json:"description"`
 	StartTime            time.Time `json:"start_time" binding:"required"`
+	EndTime              time.Time `json:"end_time" binding:"required"`
 	Location             string    `json:"location" binding:"required"`
 	RegistrationDeadline time.Time `json:"registration_deadline" binding:"required"`
 	MaxParticipants      int       `json:"max_participants" binding:"gte=0"` // 必须大于等于0
@@ -40,6 +41,7 @@ type UpdateActivityRequest struct {
 	Type                 *string    `json:"type"`
 	Description          *string    `json:"description"`
 	StartTime            *time.Time `json:"start_time"`
+	EndTime              *time.Time `json:"end_time"`
 	Location             *string    `json:"location"`
 	RegistrationDeadline *time.Time `json:"registration_deadline"`
 	MaxParticipants      *int       `json:"max_participants" binding:"omitempty,gte=0"`
@@ -56,6 +58,7 @@ type ActivityResponse struct {
 	Type                 string         `json:"type"`
 	Description          string         `json:"description"`
 	StartTime            time.Time      `json:"start_time"`
+	EndTime              time.Time      `json:"end_time"`
 	Location             string         `json:"location"`
 	RegistrationDeadline time.Time      `json:"registration_deadline"`
 	MaxParticipants      int            `json:"max_participants"`

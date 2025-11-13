@@ -60,6 +60,7 @@ func toActivityResponse(activity *model.Activity) model.ActivityResponse {
 		Type:                 activity.Type,
 		Description:          activity.Description,
 		StartTime:            activity.StartTime,
+		EndTime:              activity.EndTime,
 		Location:             activity.Location,
 		RegistrationDeadline: activity.RegistrationDeadline,
 		MaxParticipants:      activity.MaxParticipants,
