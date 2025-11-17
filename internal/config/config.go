@@ -26,11 +26,19 @@ type Config struct {
 		Password string `mapstructure:"password"`
 	} `mapstructure:"database"`
 
+	// Redis 配置
+	Redis struct {
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		Password string `mapstructure:"password"`
+		DB       int    `mapstructure:"db"`
+	} `mapstructure:"redis"`
+
 	// JWT 配置
 	JWT struct {
-		Secret           string        `mapstructure:"secret"`              // JWT 密钥
-		AdminExpiresIn   time.Duration `mapstructure:"admin_expires_in"`    // Token 有效期
-		CheckInExpiresIn time.Duration `mapstructure:"check_in_expires_in"` // Token 有效期
+		Secret          string        `mapstructure:"secret"`             // JWT 密钥
+		AdminExpiresIn  time.Duration `mapstructure:"admin_expires_in"`   // Token 有效期
+		SignInExpiresIn time.Duration `mapstructure:"sign_in_expires_in"` // Token 有效期
 	} `mapstructure:"jwt"`
 
 	LogFile string `mapstructure:"log_file"`

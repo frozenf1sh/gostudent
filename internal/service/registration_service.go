@@ -132,6 +132,21 @@ func (s *registrationServiceImpl) GetRegistrationByID(ctx context.Context, regis
 }
 
 func (s *registrationServiceImpl) SignIn(ctx context.Context, activityID uint, phone string, token string) error {
+	// 1. 检查活动是否正在进行中
+	activity, err := s.activityRepo.FindByID(ctx, activityID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.New("活动不存在")
+		}
+		return errors.New("查询活动失败: " + err.Error())
+	}
+
+	now := time.Now()
+	if now.Before(activity.StartTime) || now.After(activity.EndTime) {
+		return errors.New("当前时间不在活动时间范围内，无法签到")
+	}
+
+	// 2. 查找报名记录
 	reg, err := s.registrationRepo.FindByActivityAndPhone(ctx, activityID, phone)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -139,21 +154,16 @@ func (s *registrationServiceImpl) SignIn(ctx context.Context, activityID uint, p
 		}
 		return errors.New("查询报名记录失败: " + err.Error())
 	}
+	if reg == nil {
+		return errors.New("报名记录未找到或手机号错误")
+	}
 
-	// 2. 检查是否已签到
+	// 3. 检查是否已签到
 	if reg.IsSignedIn {
 		return errors.New("您已签到，请勿重复操作")
 	}
 
-	// 3. 校验 Token (示例: 假设 Token 存储在报名记录中, 或有统一的活动签到码)
-	// 为了简化，我们假设 token 必须匹配报名记录中的某个字段（例如：TicketToken）
-	// 或者活动有一个全局签到码 (Admin 扫码签到时可忽略此步骤)
-	// if reg.TicketToken != token {
-	// 	return errors.New("签到验证码/Token 不匹配")
-	// }
-
 	// 4. 更新签到状态和时间
-	now := time.Now()
 	err = s.registrationRepo.UpdateSignInStatus(ctx, reg.ID, true, now)
 	if err != nil {
 		return errors.New("更新签到状态失败: " + err.Error())

@@ -12,6 +12,7 @@ import (
 	"github.com/frozenf1sh/gostudent/internal/router"
 	"github.com/frozenf1sh/gostudent/internal/service"
 	"github.com/frozenf1sh/gostudent/pkg/fishlogger"
+	"github.com/frozenf1sh/gostudent/pkg/redis"
 	"github.com/frozenf1sh/gostudent/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -40,6 +41,14 @@ func main() {
 
 	// JWT令牌加载
 	utils.InitJWT()
+
+	// Redis初始化
+	err = redis.InitRedis()
+	if err != nil {
+		slog.Error("Redis初始化失败", "reason", err.Error())
+		panic("Redis初始化失败")
+	}
+	slog.Info("Redis初始化成功")
 
 	// 4. 依赖注入 (DI): 从底层到顶层依次组装
 

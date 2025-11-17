@@ -48,6 +48,9 @@ func InitRouter(
 		publicGroup.POST("/activities/:activity_id/register", registrationH.Register)
 		publicGroup.POST("/activities/:activity_id/signin", registrationH.SignIn)
 
+		// 获取签到Token
+		publicGroup.GET("/activities/:activity_id/signin-token", activityH.GetSignInToken)
+
 		// A1: 管理员登录 (唯一一个在 Public Group 中的 Admin 接口)
 		publicGroup.POST("/admin/login", adminH.Login)
 	}
@@ -70,6 +73,8 @@ func InitRouter(
 
 		// 修正: 将 :id/publish 统一为 :activity_id/publish
 		adminGroup.POST("/activities/:activity_id/publish", activityH.PublishActivity)
+
+		// 移除adminGroup中的签到Token端点
 
 		// A7 & A8: 报名记录管理 (路径已规范)
 		adminGroup.GET("/activities/:activity_id/registrations", registrationH.ListRegistrations)

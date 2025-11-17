@@ -8,6 +8,7 @@ import (
 
 	"github.com/frozenf1sh/gostudent/internal/model"
 	"github.com/frozenf1sh/gostudent/internal/service"
+	"github.com/frozenf1sh/gostudent/pkg/redis"
 	"github.com/frozenf1sh/gostudent/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -184,10 +185,6 @@ func (h *registrationHandlerImpl) GetRegistrationByID(c *gin.Context) {
 // @Success 200 {object} gin.H "签到成功"
 // @Router /activities/{activity_id}/signin [post]
 func (h *registrationHandlerImpl) SignIn(c *gin.Context) {
-	// 根据要求，签到部分暂时设置为无效
-	utils.Error(c, http.StatusNotImplemented, "签到功能暂未开放")
-
-	/* 完整的调用逻辑应为:
 	activityIDStr := c.Param("activity_id")
 	activityID, err := strconv.ParseUint(activityIDStr, 10, 64)
 	if err != nil {
@@ -201,14 +198,38 @@ func (h *registrationHandlerImpl) SignIn(c *gin.Context) {
 		return
 	}
 
-	// 假设 Service.SignIn 需要 token 或其他验证机制，此处简单传递空字符串
-	err = h.svc.SignIn(c, uint(activityID), req.Phone, "")
+	// 1. 验证Redis中的签到Token
+	isValid, err := redis.VerifyToken(
+		c.Request.Context(),
+		uint(activityID),
+		req.Token,
+	)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "验证签到Token失败: "+err.Error())
+		return
+	}
+	if !isValid {
+		utils.Error(c, http.StatusUnauthorized, "签到Token无效或已过期")
+		return
+	}
+
+	// 2. 调用Service进行签到
+	err = h.svc.SignIn(c, uint(activityID), req.Phone, req.Token)
 	if err != nil {
 		slog.Error("Failed to sign in", "activity_id", activityID, "phone", req.Phone, "error", err)
-		utils.Error(c, http.StatusInternalServerError, "签到失败: "+err.Error())
+		// 根据不同错误类型返回不同状态码
+		switch err.Error() {
+		case "报名记录未找到或手机号错误":
+			utils.Error(c, http.StatusNotFound, err.Error())
+		case "您已签到，请勿重复操作":
+			utils.Error(c, http.StatusConflict, err.Error())
+		case "当前时间不在活动时间范围内，无法签到":
+			utils.Error(c, http.StatusForbidden, err.Error())
+		default:
+			utils.Error(c, http.StatusInternalServerError, "签到失败: "+err.Error())
+		}
 		return
 	}
 
 	utils.Success(c, gin.H{"message": "签到成功"})
-	*/
 }

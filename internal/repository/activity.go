@@ -140,7 +140,7 @@ func (r *activityRepositoryImpl) UpdateStatusByDeadline(ctx context.Context) (in
 
 	// 2. 活动开始时间已过，且状态为 PUBLISHED 或 CLOSED，更新为 FINISHED
 	finished := r.db.WithContext(ctx).Model(&model.Activity{}).
-		Where("start_time < ? AND status IN (?, ?)", time.Now(), model.ActivityStatusPublished, model.ActivityStatusClosed).
+		Where("end_time < ? AND status IN (?, ?)", time.Now(), model.ActivityStatusPublished, model.ActivityStatusClosed).
 		Update("status", model.ActivityStatusFinished)
 
 	if closed.Error != nil {

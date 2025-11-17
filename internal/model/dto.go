@@ -102,7 +102,7 @@ type RegistrationResponse struct {
 // SignInRequest 参与者签到请求 (新增)
 type SignInRequest struct {
 	Phone string `json:"phone" binding:"required"` // 参与者手机号，用于查找报名记录
-	// Token string `json:"token" binding:"required"` // 签到 Token 或验证码
+	Token string `json:"token" binding:"required"` // 签到 Token 或验证码
 }
 
 // DashboardResponse 仪表盘统计响应

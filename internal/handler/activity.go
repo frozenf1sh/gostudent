@@ -5,11 +5,13 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	// "time" // 引入 time 以便使用 ActivityResponse 结构体
+	"time" // 引入 time 以便使用 ActivityResponse 结构体
 
 	// 注意：这里需要替换为你项目的实际导入路径
+	"github.com/frozenf1sh/gostudent/internal/config"
 	"github.com/frozenf1sh/gostudent/internal/model"
 	"github.com/frozenf1sh/gostudent/internal/service"
+	"github.com/frozenf1sh/gostudent/pkg/redis"
 	"github.com/frozenf1sh/gostudent/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +24,7 @@ type ActivityHandler interface {
 	UpdateActivity(c *gin.Context)
 	DeleteActivity(c *gin.Context)
 	PublishActivity(c *gin.Context)
+	GetSignInToken(c *gin.Context)
 }
 
 type activityHandlerImpl struct {
@@ -290,4 +293,56 @@ func (h *activityHandlerImpl) PublishActivity(c *gin.Context) {
 
 	// DTO 转换
 	utils.Success(c, toActivityResponse(publishedActivity))
+}
+
+// GetSignInToken godoc
+// @Summary 生成活动签到Token
+// @Description 为特定活动生成临时签到Token（有效时间30秒，活动期间可获取）
+// @Tags Activity
+// @Produce json
+// @Param activity_id path int true "活动ID"
+// @Success 200 {object} gin.H "生成成功，返回签到Token"
+// @Failure 400 {object} gin.H "活动ID格式错误"
+// @Failure 404 {object} gin.H "活动不存在"
+// @Failure 403 {object} gin.H "不在活动时间范围内，无法获取签到Token"
+// @Failure 500 {object} gin.H "生成Token失败"
+// @Router /api/v1/activities/{activity_id}/signin-token [get]
+func (h *activityHandlerImpl) GetSignInToken(c *gin.Context) {
+	activityIDStr := c.Param("activity_id")
+	activityID, err := strconv.ParseUint(activityIDStr, 10, 64)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "活动ID格式错误")
+		return
+	}
+
+	// 1. 获取活动信息
+	activity, err := h.svc.GetActivityByID(c, uint(activityID))
+	if err != nil {
+		if errors.Is(err, service.ErrActivityNotFound) {
+			utils.Error(c, http.StatusNotFound, "活动不存在")
+			return
+		}
+		utils.Error(c, http.StatusInternalServerError, "获取活动信息失败: "+err.Error())
+		return
+	}
+
+	// 2. 检查是否在活动时间范围内
+	now := time.Now()
+	if now.Before(activity.StartTime) || now.After(activity.EndTime) {
+		utils.Error(c, http.StatusForbidden, "当前时间不在活动时间范围内，无法获取签到Token")
+		return
+	}
+
+	// 3. 生成并存储签到Token到Redis
+	token, err := redis.GenerateAndStoreToken(
+		c.Request.Context(),
+		uint(activityID),
+		config.GlobalConfig.JWT.SignInExpiresIn,
+	)
+	if err != nil {
+		utils.Error(c, http.StatusInternalServerError, "生成签到Token失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{"token": token})
 }
