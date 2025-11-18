@@ -51,7 +51,7 @@ func (s *activityServiceImpl) StartActivityStatusUpdater(ctx context.Context, in
 				if err != nil {
 					slog.Error("活动状态自动更新失败", "err", err)
 				} else {
-					slog.Info("活动状态自动更新", "time", t, "closed_count", closed, "finished_count", finished)
+					slog.Debug("活动状态自动更新", "time", t, "closed_count", closed, "finished_count", finished)
 				}
 			}
 		}

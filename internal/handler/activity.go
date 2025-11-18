@@ -122,6 +122,7 @@ func (h *activityHandlerImpl) CreateActivity(c *gin.Context) {
 // @Produce json
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页大小" default(10)
+// @Param title query string false "活动名称关键词过滤"
 // @Param status query string false "活动状态过滤"
 // @Success 200 {object} gin.H{list=[]model.ActivityResponse,total=int} "活动列表和总数" // 修正 Swagger
 // @Router /activities [get]

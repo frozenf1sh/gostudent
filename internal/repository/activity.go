@@ -105,6 +105,10 @@ func (r *activityRepositoryImpl) List(ctx context.Context, params *model.ListAct
 		query = query.Where("status = ?", params.Status)
 		countQuery = countQuery.Where("status = ?", params.Status)
 	}
+	if params.Title != "" {
+		query = query.Where("title LIKE ?", "%"+params.Title+"%")
+		countQuery = countQuery.Where("title LIKE ?", "%"+params.Title+"%")
+	}
 	if !params.DateFrom.IsZero() {
 		query = query.Where("start_time >= ?", params.DateFrom)
 		countQuery = countQuery.Where("start_time >= ?", params.DateFrom)

@@ -73,6 +73,7 @@ type ActivityResponse struct {
 type ListActivitiesParams struct {
 	Page     int            `form:"page,default=1"`       // 页码
 	PageSize int            `form:"page_size,default=10"` // 每页大小
+	Title    string         `form:"title"`                // 按活动名称关键词过滤
 	Type     string         `form:"type"`                 // 按类型过滤
 	Status   ActivityStatus `form:"status"`               // 按状态过滤
 	DateFrom time.Time      `form:"date_from"`            // 按时间范围过滤
@@ -103,6 +104,11 @@ type RegistrationResponse struct {
 type SignInRequest struct {
 	Phone string `json:"phone" binding:"required"` // 参与者手机号，用于查找报名记录
 	Token string `json:"token" binding:"required"` // 签到 Token 或验证码
+}
+
+// UpdateSignInStatusRequest 管理员更新签到状态请求
+type UpdateSignInStatusRequest struct {
+	IsSignedIn bool `json:"is_signed_in" binding:"required"` // 是否签到
 }
 
 // DashboardResponse 仪表盘统计响应

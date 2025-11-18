@@ -27,6 +27,8 @@ type RegistrationService interface {
 	SignIn(ctx context.Context, activityID uint, phone string, token string) error
 	// 获取单条报名记录详情 (新增)
 	GetRegistrationByID(ctx context.Context, registrationID uint) (*model.Registration, error)
+	// UpdateSignInStatusByAdmin 管理员更新签到状态 (新增)
+	UpdateSignInStatusByAdmin(ctx context.Context, registrationID uint, isSignedIn bool) error
 }
 
 type registrationServiceImpl struct {
@@ -129,6 +131,27 @@ func (s *registrationServiceImpl) GetRegistrationByID(ctx context.Context, regis
 		return nil, err
 	}
 	return reg, nil
+}
+
+// UpdateSignInStatusByAdmin 管理员更新签到状态实现
+func (s *registrationServiceImpl) UpdateSignInStatusByAdmin(ctx context.Context, registrationID uint, isSignedIn bool) error {
+	// 1. 检查报名记录是否存在
+	reg, err := s.registrationRepo.FindByID(ctx, registrationID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrRegistrationNotFound
+		}
+		return err
+	}
+
+	// 2. 如果已经是目标状态，无需更新
+	if reg.IsSignedIn == isSignedIn {
+		return nil
+	}
+
+	// 3. 更新签到状态
+	now := time.Now()
+	return s.registrationRepo.UpdateSignInStatus(ctx, registrationID, isSignedIn, now)
 }
 
 func (s *registrationServiceImpl) SignIn(ctx context.Context, activityID uint, phone string, token string) error {

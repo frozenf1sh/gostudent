@@ -19,6 +19,8 @@ type RegistrationHandler interface {
 	ListRegistrations(c *gin.Context)
 	SignIn(c *gin.Context) // 签到功能 (目前禁用)
 	GetRegistrationByID(c *gin.Context)
+	// 管理员更新签到状态
+	AdminUpdateSignInStatus(c *gin.Context)
 }
 
 type registrationHandlerImpl struct {
@@ -232,4 +234,45 @@ func (h *registrationHandlerImpl) SignIn(c *gin.Context) {
 	}
 
 	utils.Success(c, gin.H{"message": "签到成功"})
+}
+
+// AdminUpdateSignInStatus godoc
+// @Summary 管理员更新报名记录的签到状态
+// @Description 管理员可以跳过token认证直接修改报名记录的签到状态
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param registration_id path int true "报名记录ID"
+// @Param request body model.UpdateSignInStatusRequest true "更新签到状态请求"
+// @Success 200 {object} gin.H "更新成功"
+// @Failure 400 {object} gin.H "请求参数错误"
+// @Failure 404 {object} gin.H "报名记录不存在"
+// @Failure 500 {object} gin.H "内部系统错误"
+// @Security Bearer
+// @Router /admin/registrations/{registration_id}/sign_in [put]
+func (h *registrationHandlerImpl) AdminUpdateSignInStatus(c *gin.Context) {
+	registrationIDStr := c.Param("registration_id")
+	registrationID, err := strconv.ParseUint(registrationIDStr, 10, 64)
+	if err != nil {
+		utils.Error(c, http.StatusBadRequest, "报名ID格式错误")
+		return
+	}
+
+	var req model.UpdateSignInStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Error(c, http.StatusBadRequest, "请求参数错误: "+err.Error())
+		return
+	}
+
+	err = h.svc.UpdateSignInStatusByAdmin(c.Request.Context(), uint(registrationID), req.IsSignedIn)
+	if err != nil {
+		if errors.Is(err, service.ErrRegistrationNotFound) {
+			utils.Error(c, http.StatusNotFound, "报名记录不存在")
+			return
+		}
+		utils.Error(c, http.StatusInternalServerError, "更新签到状态失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{"message": "签到状态更新成功"})
 }
