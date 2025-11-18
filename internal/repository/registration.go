@@ -21,6 +21,8 @@ type RegistrationRepository interface {
 	FindByActivityAndPhone(ctx context.Context, activityID uint, phone string) (*model.Registration, error)
 	// 通过活动id列出所有报名（分页）
 	ListByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error)
+	// 多条件查询报名记录
+	List(ctx context.Context, params *model.ListRegistrationsParams) ([]*model.Registration, int64, error)
 	// 通过主键id查找
 	FindByID(ctx context.Context, id uint) (*model.Registration, error)
 	// 更新签到状态+时间
@@ -70,20 +72,46 @@ func (r *registrationRepositoryImpl) FindByActivityAndPhone(ctx context.Context,
 
 // ListByActivityID 列出某个活动的所有报名者 (带分页)
 func (r *registrationRepositoryImpl) ListByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error) {
+	// 调用通用List方法实现
+	params := &model.ListRegistrationsParams{
+		Page:       page,
+		PageSize:   pageSize,
+		ActivityID: activityID,
+	}
+	return r.List(ctx, params)
+}
+
+// List 多条件查询报名记录 (带分页)
+func (r *registrationRepositoryImpl) List(ctx context.Context, params *model.ListRegistrationsParams) ([]*model.Registration, int64, error) {
 	var registrations []*model.Registration
 	var total int64
 
 	// 构造查询条件
-	query := r.db.WithContext(ctx).Model(&model.Registration{}).Where("activity_id = ?", activityID)
+	query := r.db.WithContext(ctx).Model(&model.Registration{})
+	countQuery := r.db.WithContext(ctx).Model(&model.Registration{})
+
+	// 应用过滤条件
+	if params.ActivityID != 0 {
+		query = query.Where("activity_id = ?", params.ActivityID)
+		countQuery = countQuery.Where("activity_id = ?", params.ActivityID)
+	}
+	if params.ParticipantPhone != "" {
+		query = query.Where("participant_phone = ?", params.ParticipantPhone)
+		countQuery = countQuery.Where("participant_phone = ?", params.ParticipantPhone)
+	}
+	if params.IsSignedIn != nil {
+		query = query.Where("is_signed_in = ?", *params.IsSignedIn)
+		countQuery = countQuery.Where("is_signed_in = ?", *params.IsSignedIn)
+	}
 
 	// 1. 获取总数
-	if err := query.Count(&total).Error; err != nil {
+	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	// 2. 应用分页并查询
-	offset := (page - 1) * pageSize
-	if err := query.Order("registered_at ASC").Limit(pageSize).Offset(offset).Find(&registrations).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+	if err := query.Order("registered_at ASC").Limit(params.PageSize).Offset(offset).Find(&registrations).Error; err != nil {
 		return nil, 0, err
 	}
 

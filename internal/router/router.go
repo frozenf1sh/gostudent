@@ -79,6 +79,7 @@ func InitRouter(
 		// A7 & A8: 报名记录管理 (路径已规范)
 		adminGroup.GET("/activities/:activity_id/registrations", registrationH.ListRegistrations)
 		adminGroup.GET("/registrations/:registration_id", registrationH.GetRegistrationByID) // A8
+		adminGroup.GET("/registrations", registrationH.ListRegistrations)
 		adminGroup.PUT("/registrations/:registration_id/sign_in", registrationH.AdminUpdateSignInStatus)
 
 		// A9: Admin面板统计信息

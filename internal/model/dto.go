@@ -106,6 +106,15 @@ type SignInRequest struct {
 	Token string `json:"token" binding:"required"` // 签到 Token 或验证码
 }
 
+// ListRegistrationsParams 报名列表查询参数
+type ListRegistrationsParams struct {
+	Page        int    `form:"page,default=1"`       // 页码
+	PageSize    int    `form:"page_size,default=10"` // 每页大小
+	ActivityID  uint   `form:"activity_id"`          // 活动ID (可选)
+	ParticipantPhone string `form:"phone"`           // 参与者手机号 (可选)
+	IsSignedIn  *bool  `form:"is_signed_in"`         // 签到状态 (可选，指针类型允许传false)
+}
+
 // UpdateSignInStatusRequest 管理员更新签到状态请求
 type UpdateSignInStatusRequest struct {
 	IsSignedIn bool `json:"is_signed_in" binding:"required"` // 是否签到

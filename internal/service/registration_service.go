@@ -23,6 +23,8 @@ type RegistrationService interface {
 	Register(ctx context.Context, activityID uint, req *model.CreateRegistrationRequest) (*model.Registration, error) // 核心事务逻辑
 	// 列出活动报名者
 	ListRegistrationsByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error)
+	// 多条件查询报名记录
+	ListRegistrations(ctx context.Context, params *model.ListRegistrationsParams) ([]*model.Registration, int64, error)
 	// SignIn 签到逻辑
 	SignIn(ctx context.Context, activityID uint, phone string, token string) error
 	// 获取单条报名记录详情 (新增)
@@ -116,6 +118,12 @@ func (s *registrationServiceImpl) Register(ctx context.Context, activityID uint,
 func (s *registrationServiceImpl) ListRegistrationsByActivityID(ctx context.Context, activityID uint, page, pageSize int) ([]*model.Registration, int64, error) {
 	// 校验 activityID 权限和存在性（通常在 handler/service.activity.GetByID 中完成）
 	return s.registrationRepo.ListByActivityID(ctx, activityID, page, pageSize)
+}
+
+// ListRegistrations 多条件查询报名记录
+func (s *registrationServiceImpl) ListRegistrations(ctx context.Context, params *model.ListRegistrationsParams) ([]*model.Registration, int64, error) {
+	// 权限校验可以根据实际业务需求添加
+	return s.registrationRepo.List(ctx, params)
 }
 
 // GetRegistrationByID 根据ID获取单条报名记录详情 (新增实现)

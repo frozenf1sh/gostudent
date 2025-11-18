@@ -95,32 +95,61 @@ func (h *registrationHandlerImpl) Register(c *gin.Context) {
 // @Param activity_id path int true "活动ID"
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页大小" default(10)
+// @Param phone query string false "参与者手机号"
+// @Param is_signed_in query bool false "签到状态"
 // @Success 200 {object} gin.H{list=[]model.RegistrationResponse,total=int} "报名记录列表和总数"
 // @Failure 400 {object} gin.H "请求参数错误"
 // @Failure 500 {object} gin.H "内部系统错误"
 // @Router /admin/activities/{activity_id}/registrations [get]
+//
+// ListRegistrations godoc
+// @Summary 管理员多条件查询报名列表
+// @Description 管理员可以根据活动ID、手机号、签到状态查询报名记录
+// @Tags Registration
+// @Security ApiKeyAuth
+// @Produce json
+// @Param activity_id query int false "活动ID"
+// @Param phone query string false "参与者手机号"
+// @Param is_signed_in query bool false "签到状态"
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页大小" default(10)
+// @Success 200 {object} gin.H{list=[]model.RegistrationResponse,total=int} "报名记录列表和总数"
+// @Failure 400 {object} gin.H "请求参数错误"
+// @Failure 500 {object} gin.H "内部系统错误"
+// @Router /admin/registrations [get]
 func (h *registrationHandlerImpl) ListRegistrations(c *gin.Context) {
-	activityIDStr := c.Param("activity_id")
-	activityID, err := strconv.ParseUint(activityIDStr, 10, 64)
-	if err != nil {
-		utils.Error(c, http.StatusBadRequest, "活动ID格式错误")
+	// 初始化查询参数
+	params := &model.ListRegistrationsParams{}
+
+	// 解析分页参数和查询参数
+	if err := c.ShouldBindQuery(params); err != nil {
+		utils.Error(c, http.StatusBadRequest, "查询参数错误: "+err.Error())
 		return
 	}
 
-	// 解析分页参数
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	if page <= 0 {
-		page = 1
+	// 检查是否有路径参数activity_id
+	activityIDStr := c.Param("activity_id")
+	if activityIDStr != "" {
+		activityID, err := strconv.ParseUint(activityIDStr, 10, 64)
+		if err != nil {
+			utils.Error(c, http.StatusBadRequest, "活动ID格式错误")
+			return
+		}
+		params.ActivityID = uint(activityID)
 	}
-	if pageSize <= 0 || pageSize > 100 {
-		pageSize = 10
+
+	// 设置默认分页参数
+	if params.Page <= 0 {
+		params.Page = 1
+	}
+	if params.PageSize <= 0 || params.PageSize > 100 {
+		params.PageSize = 10
 	}
 
 	// 调用 Service 层查询逻辑
-	list, total, err := h.svc.ListRegistrationsByActivityID(c, uint(activityID), page, pageSize)
+	list, total, err := h.svc.ListRegistrations(c, params)
 	if err != nil {
-		slog.Error("Failed to list registrations", "activity_id", activityID, "error", err)
+		slog.Error("Failed to list registrations", "params", params, "error", err)
 		utils.Error(c, http.StatusInternalServerError, "查询报名列表失败: "+err.Error())
 		return
 	}
@@ -129,7 +158,7 @@ func (h *registrationHandlerImpl) ListRegistrations(c *gin.Context) {
 	utils.Success(c, gin.H{
 		"list":  list,
 		"total": total,
-		"page":  page,
+		"page":  params.Page,
 	})
 }
 
