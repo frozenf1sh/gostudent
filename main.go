@@ -50,19 +50,18 @@ func main() {
 	}
 	slog.Info("Redis初始化成功")
 
-	// 4. 依赖注入 (DI): 从底层到顶层依次组装
-
-	// --- 4.1. 注入 Repositories (数据访问层) ---
+	// 依赖注入 (DI)
+	// 注入 Repositories
 	adminRepo := repository.NewAdminRepository(db)
 	activityRepo := repository.NewActivityRepository(db)
 	registrationRepo := repository.NewRegistrationRepository(db)
 
-	// --- 4.2. 注入 Services (业务逻辑层) ---
+	// 注入 Services
 	adminSvc := service.NewAdminService(adminRepo)
 	activitySvc := service.NewActivityService(db, activityRepo)                           // ActivityService 需要 db 来处理事务
 	registrationSvc := service.NewRegistrationService(db, activityRepo, registrationRepo) // RegistrationService 涉及活动和报名两个 Repo
 
-	// --- 4.3. 注入 Handlers (API 接口层) ---
+	// 注入 Handlers
 	adminH := handler.NewAdminHandler(adminSvc)
 	activityH := handler.NewActivityHandler(activitySvc)
 	registrationH := handler.NewRegistrationHandler(registrationSvc)
