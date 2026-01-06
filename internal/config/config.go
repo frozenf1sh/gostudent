@@ -24,6 +24,7 @@ type Config struct {
 		Port     int    `mapstructure:"port"`
 		Name     string `mapstructure:"name"`
 		Password string `mapstructure:"password"`
+		Database string `mapstructure:"database"`
 	} `mapstructure:"database"`
 
 	// Redis 配置

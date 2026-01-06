@@ -1,0 +1,37 @@
+# config.example.yaml - 配置文件示例
+server:
+  port: 8080                    # 服务器监听端口
+  host: "127.0.0.1"             # 服务器监听地址
+
+database:
+  driver: "mysql"               # 数据库驱动
+  host: "localhost"             # 数据库地址
+  port: 3306                    # 数据库端口
+  name: "your_username"         # 数据库用户名
+  password: "your_db_password"  # 数据库密码
+  database: "database_name"     # 数据库名称
+
+redis:
+  host: "localhost"             # Redis地址
+  port: 6379                    # Redis端口
+  password: ""                  # Redis密码（如果没有密码则留空）
+  db: 0                         # Redis数据库索引
+
+jwt:
+  secret: "your_jwt_secret"     # JWT密钥
+  admin_expires_in: "1h"        # 管理员Token过期时间
+  sign_in_expires_in: "30s"     # 签到Token过期时间
+
+log_file: "log.json"            # 日志文件路径
+
+admin:
+  username: "admin"             # 默认管理员用户名
+  password: "your_admin_password"  # 默认管理员密码
+
+cors:
+  allow_origins:                # 允许的跨域来源
+    - "http://localhost:5173"   # 前端开发服务器地址
+    - "https://your-frontend-domain.com"  # 生产环境前端域名
+  allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]  # 允许的HTTP方法
+
+activity_status_update_interval: "30s"  # 活动状态自动更新间隔

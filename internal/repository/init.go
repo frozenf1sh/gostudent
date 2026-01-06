@@ -20,11 +20,12 @@ import (
 func GormInit() (db *gorm.DB) {
 	var err error
 	// 拼接dsn
-	DSN := fmt.Sprintf("%s:%s@tcp(%s:%v)/xdu_activity?charset=utf8mb4&parseTime=True&loc=Local",
+	DSN := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		config.GlobalConfig.Database.Name,
 		config.GlobalConfig.Database.Password,
 		config.GlobalConfig.Database.Host,
-		config.GlobalConfig.Database.Port)
+		config.GlobalConfig.Database.Port,
+		config.GlobalConfig.Database.Database)
 
 	// 连接数据库，并设置gorm日志
 	gormAdapter := fishlogger.NewGormSlogAdapter(fishlogger.AppLogger)

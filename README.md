@@ -2,6 +2,15 @@
 
 一个基于 Go + Gin 框架开发的学生活动管理系统，支持活动发布、报名、签到等功能。
 
+## 目录
+
+- [功能特性](#功能特性)
+- [配置说明](#配置说明)
+- [API文档](#apidoc)
+- [运行说明](#运行说明)
+- [Docker部署](#docker部署)
+- [技术栈](#技术栈)
+
 ## 功能特性
 
 ### 公共接口
@@ -27,7 +36,16 @@
 
 ## 配置说明
 
-项目配置文件 `config.yaml` 位于根目录，包含以下字段：
+项目配置文件 `config.yaml` 位于根目录。我们提供了一个 `config.example.yaml` 文件作为示例配置，您可以参考该文件进行配置。
+
+### 配置步骤
+1. 将示例配置文件复制为正式配置文件：
+   ```
+   cp config.example.yaml config.yaml
+   ```
+2. 根据您的实际环境修改 `config.yaml` 中的配置项。
+
+配置文件包含以下字段：
 
 | 配置项 | 说明 |
 |--------|------|
@@ -36,8 +54,9 @@
 | `database.driver` | 数据库驱动（支持mysql） |
 | `database.host` | 数据库地址 |
 | `database.port` | 数据库端口 |
-| `database.name` | 数据库名称 |
+| `database.name` | 数据库用户名 |
 | `database.password` | 数据库密码 |
+| `database.database` | 数据库名称 |
 | `redis.host` | Redis地址 |
 | `redis.port` | Redis端口 |
 | `redis.password` | Redis密码 |
@@ -52,7 +71,7 @@
 | `cors.allow_methods` | 允许的HTTP方法 |
 | `activity_status_update_interval` | 活动状态自动更新间隔 |
 
-## API文档
+## API文档 {#apidoc}
 
 ### 公共接口（无需认证）
 
@@ -513,6 +532,49 @@
    ```
    go run main.go
    ```
+
+## Docker部署
+
+本项目支持使用Docker一键部署，以下是详细步骤：
+
+### 前置要求
+- 安装Docker
+- 安装Docker Compose (可选，用于更便捷的部署)
+
+### 快速部署
+1. 克隆项目到本地：
+   ```
+   git clone <repository-url>
+   cd goweb
+   ```
+
+2. 构建Docker镜像：
+   ```
+   docker build -t student-activity-system .
+   ```
+
+3. 运行Docker容器：
+   ```
+   docker run -d -p 80:80 student-activity-system
+   ```
+   或自定义端口（例如将容器的80端口映射到主机的8080端口）：
+   ```
+   docker run -d -p 8080:80 student-activity-system
+   ```
+
+### 使用自定义配置
+如果你需要使用自己的配置文件，在运行容器时可以将本地的`config.yaml`挂载到容器内：
+
+1. 修改本地`config.yaml`文件
+2. 运行容器：
+   ```
+   docker run -d -p 80:80 -v $(pwd)/config.yaml:/app/config.yaml student-activity-system
+   ```
+
+### 访问系统
+部署完成后，在浏览器中访问：
+- 前端：http://localhost
+- 后端API：http://localhost/api/v1/activities
 
 ## 技术栈
 
