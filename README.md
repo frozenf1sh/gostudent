@@ -516,7 +516,7 @@
 
 ## 技术栈
 
-- Go 1.18+
+- Go 1.25.1
 - Gin 框架
 - GORM  ORM
 - MySQL
